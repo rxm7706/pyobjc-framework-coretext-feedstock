@@ -1,5 +1,5 @@
 {% set name = "pyobjc-framework-CoreText" %}
-{% set version = "10.3.1" %}
+{% set version = "12.1" %}
 
 package:
   name: {{ name|lower }}
@@ -7,13 +7,17 @@ package:
 
 source:
   url: https://pypi.org/packages/source/{{ name[0] }}/{{ name.replace('-', '_').lower() }}/{{ name.replace('-', '_').lower() }}-{{ version }}.tar.gz
-  sha256: b8fa2d5078ed774431ae64ba886156e319aec0b8c6cc23dabfd86778265b416f
+  sha256: e0adb717738fae395dc645c9e8a10bb5f6a4277e73cba8fa2a57f3b518e71da5
 
 build:
-  skip: true  # [not osx]
-  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
-  number: 2
-
+  number: 0
+  script:
+    # force pyobjc to use conda-forge's chosen SDK
+    - export CFLAGS="${CFLAGS} -isysroot ${SDKROOT:-$CONDA_BUILD_SYSROOT}"
+    # force ignoring invalid compiler flag (-Wl,-export-dynamic)
+    - export CFLAGS="${CFLAGS} -Wno-unused-command-line-argument"  # [py == 37 or py == 38]
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  skip: true  # [(not osx) or py2k or python_impl == 'pypy' or (arm64 and py < 39)]
 
 requirements:
   build:
@@ -26,6 +30,7 @@ requirements:
     - setuptools
     - wheel
     - pip
+    #- libffi
   run:
     - python
     - pyobjc-core >={{ version }}
